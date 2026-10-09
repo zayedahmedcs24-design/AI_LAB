@@ -1,0 +1,158 @@
+import heapq
+
+GOAL = (
+    1, 2, 3,
+    8, 0, 4,
+    7, 6, 5
+)
+
+POS = {
+    n: divmod(i, 3)
+    for i, n in enumerate(GOAL)
+    if n != 0
+}
+
+
+def manhattan(state):
+    return sum(
+        abs(i // 3 - POS[n][0]) +
+        abs(i % 3 - POS[n][1])
+        for i, n in enumerate(state)
+        if n != 0
+    )
+
+
+def neighbors(state):
+    zero = state.index(0)
+    row, col = divmod(zero, 3)
+
+    moves = [
+        (-1, 0),
+        (1, 0),
+        (0, -1),
+        (0, 1)
+    ]
+
+    for dr, dc in moves:
+        new_row = row + dr
+        new_col = col + dc
+
+        if 0 <= new_row < 3 and 0 <= new_col < 3:
+            new_state = list(state)
+            new_zero = new_row * 3 + new_col
+
+            new_state[zero], new_state[new_zero] = (
+                new_state[new_zero],
+                new_state[zero]
+            )
+
+            yield tuple(new_state)
+
+
+def inversions(state):
+    tiles = [x for x in state if x != 0]
+
+    return sum(
+        tiles[i] > tiles[j]
+        for i in range(len(tiles))
+        for j in range(i + 1, len(tiles))
+    )
+
+
+def solvable(state):
+    return (
+        inversions(state) % 2
+        == inversions(GOAL) % 2
+    )
+
+
+def astar(start):
+    priority_queue = [
+        (manhattan(start), 0, start, [start])
+    ]
+
+    visited = {start: 0}
+
+    while priority_queue:
+        f, g, state, path = heapq.heappop(priority_queue)
+
+        if state == GOAL:
+            return path
+
+        for new_state in neighbors(state):
+            new_cost = g + 1
+
+            if (
+                new_state not in visited
+                or new_cost < visited[new_state]
+            ):
+                visited[new_state] = new_cost
+
+                heapq.heappush(
+                    priority_queue,
+                    (
+                        new_cost + manhattan(new_state),
+                        new_cost,
+                        new_state,
+                        path + [new_state]
+                    )
+                )
+
+    return None
+
+
+def print_board(state):
+    for i in range(0, 9, 3):
+        print(
+            " ".join(
+                str(x) if x != 0 else " "
+                for x in state[i:i + 3]
+            )
+        )
+
+    print("-" * 9)
+
+
+while True:
+    try:
+        state = tuple(
+            map(int, input("Enter 9 numbers: ").split())
+        )
+
+        if len(state) == 9 and sorted(state) == list(range(9)):
+            break
+
+        print("Error: Enter numbers 0 to 8 exactly once.")
+
+    except ValueError:
+        print("Error: Enter integers only.")
+
+
+print("\nInitial State:")
+print_board(state)
+
+print("Target Goal State:")
+print_board(GOAL)
+
+if not solvable(state):
+    print("This puzzle configuration is UNSOLVABLE.")
+
+else:
+    print(
+        "Solvability check passed! Solving using A* Search "
+        "(Manhattan Distance)...\n"
+    )
+
+    solution = astar(state)
+
+    if solution:
+        print(
+            f"Solution found in {len(solution) - 1} steps!\n"
+        )
+
+        for step, state in enumerate(solution):
+            print(f"Step {step}:")
+            print_board(state)
+
+    else:
+        print("No solution found.")
