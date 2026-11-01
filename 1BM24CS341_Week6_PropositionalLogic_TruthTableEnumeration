@@ -1,0 +1,53 @@
+from itertools import product
+
+symbols = ['P', 'Q', 'R']
+
+def implies(a, b):
+    return (not a) or b
+
+def check_kb(m):
+    P, Q, R = m['P'], m['Q'], m['R']
+
+    s1 = (P == Q)
+    s2 = Q and R
+    s3 = implies(not P, R)
+
+    return s1 and s2 and s3
+
+def entails(query):
+    for values in product([False, True], repeat=3):
+        m = dict(zip(symbols, values))
+
+        if check_kb(m) and not query(m):
+            return False
+
+    return True
+
+print("P Q R | P<->Q | Q AND R | NOT P->R | KB")
+print("-" * 53)
+
+models = []
+
+for values in product([False, True], repeat=3):
+    m = dict(zip(symbols, values))
+
+    P, Q, R = values
+    s1 = (P == Q)
+    s2 = Q and R
+    s3 = implies(not P, R)
+    kb = check_kb(m)
+
+    print(P, Q, R, "|", s1, "|", s2, "|", s3, "|", kb)
+
+    if kb:
+        models.append(m)
+
+print("\nModels of KB:", models)
+
+print("\nKB entails Q:", entails(lambda m: m['Q']))
+
+print("KB entails P -> Q:",
+      entails(lambda m: implies(m['P'], m['Q'])))
+
+print("KB entails R -> Q:",
+      entails(lambda m: implies(m['R'], m['Q'])))
