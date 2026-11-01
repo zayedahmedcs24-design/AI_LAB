@@ -1,0 +1,56 @@
+import math
+import random
+
+def calculate_cost(state):
+    conflicts = 0
+    n = len(state)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if abs(i - j) == abs(state[i] - state[j]):
+                conflicts += 1
+    return conflicts
+
+def get_random_neighbor(state):
+    neighbor = list(state)
+    i, j = random.sample(range(len(state)), 2)
+    neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+    return neighbor
+
+def simulated_annealing(initial_state, initial_temp=100.0, cooling_rate=0.99):
+    current_state = initial_state
+    current_cost = calculate_cost(current_state)
+    
+    T = initial_temp
+    
+    while T > 0.01: 
+        if current_cost == 0:
+            break
+            
+        next_state = get_random_neighbor(current_state)
+        next_cost = calculate_cost(next_state)
+        
+        delta_e = current_cost - next_cost 
+        
+        if delta_e > 0:
+            current_state = next_state
+            current_cost = next_cost
+        else:
+            probability = math.exp(delta_e / T)
+            if random.random() < probability:
+                current_state = next_state
+                current_cost = next_cost
+                
+        T *= cooling_rate 
+        
+    return current_state, current_cost
+
+initial_state = list(range(8))
+random.shuffle(initial_state)
+
+print(f"Initial State: {initial_state} | Initial Cost: {calculate_cost(initial_state)}")
+final_state, final_cost = simulated_annealing(initial_state)
+print(f"Final Configuration: {final_state} | Final Cost: {final_cost}")
+if final_cost == 0:
+    print("Successfully found a solution!")
+else:
+    print("Terminated without reaching perfect 0 cost. Try adjusting the cooling rate.")
