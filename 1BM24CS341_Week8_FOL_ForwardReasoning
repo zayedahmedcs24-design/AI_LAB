@@ -1,0 +1,195 @@
+facts = {
+    ("American", "Robert"),
+    ("Enemy", "A", "America"),
+    ("Owns", "A", "T1"),
+    ("Missile", "T1")
+}
+
+
+rules = [
+
+    {
+        "premises": [("Missile", "x")],
+        "conclusion": ("Weapon", "x")
+    },
+
+    {
+        "premises": [
+            ("Missile", "x"),
+            ("Owns", "A", "x")
+        ],
+        "conclusion": ("Sells", "Robert", "x", "A")
+    },
+
+    {
+        "premises": [("Enemy", "x", "America")],
+        "conclusion": ("Hostile", "x")
+    },
+
+    {
+        "premises": [
+            ("American", "x"),
+            ("Weapon", "y"),
+            ("Sells", "x", "y", "z"),
+            ("Hostile", "z")
+        ],
+        "conclusion": ("Criminal", "x")
+    }
+]
+
+
+
+def is_variable(term):
+    return isinstance(term, str) and term.islower()
+
+
+
+def substitute(term, substitution):
+
+    if isinstance(term, str):
+
+        while term in substitution:
+            term = substitution[term]
+
+        return term
+
+    if isinstance(term, tuple):
+
+        return tuple(
+            substitute(arg, substitution)
+            for arg in term
+        )
+
+    return term
+
+
+
+def match(pattern, fact, substitution):
+
+    pattern = substitute(pattern, substitution)
+
+    if pattern == fact:
+        return substitution
+
+    if is_variable(pattern):
+
+        new_substitution = substitution.copy()
+        new_substitution[pattern] = fact
+        return new_substitution
+
+    if isinstance(pattern, tuple) and isinstance(fact, tuple):
+
+        if len(pattern) != len(fact):
+            return None
+
+        if pattern[0] != fact[0]:
+            return None
+
+        for p, f in zip(pattern[1:], fact[1:]):
+
+            substitution = match(p, f, substitution)
+
+            if substitution is None:
+                return None
+
+        return substitution
+
+    return None
+
+
+
+def find_substitutions(premises, facts, substitution=None):
+
+    if substitution is None:
+        substitution = {}
+
+    if not premises:
+        return [substitution]
+
+    first = premises[0]
+    remaining = premises[1:]
+
+    results = []
+
+    for fact in facts:
+
+        new_substitution = match(
+            first, fact, substitution.copy()
+        )
+
+        if new_substitution is not None:
+
+            results.extend(
+                find_substitutions(
+                    remaining,
+                    facts,
+                    new_substitution
+                )
+            )
+
+    return results
+
+
+
+def forward_chaining(facts, rules, goal):
+
+    iteration = 1
+
+    print("INITIAL KNOWLEDGE BASE")
+    for fact in sorted(facts):
+        print(fact)
+
+    while True:
+
+        new_facts = set()
+
+        print("\nITERATION", iteration)
+
+        for rule in rules:
+
+            substitutions = find_substitutions(
+                rule["premises"], facts
+            )
+
+            for substitution in substitutions:
+
+                conclusion = substitute(
+                    rule["conclusion"], substitution
+                )
+
+                if conclusion not in facts:
+
+                    new_facts.add(conclusion)
+
+                    print("New Fact Generated:", conclusion)
+
+                    if conclusion == goal:
+                        print("\nGOAL PROVED!")
+                        print("Result:", goal)
+                        return True
+
+        if not new_facts:
+
+            print("\nNo more new facts can be generated.")
+            print("Goal could not be proved.")
+            return False
+
+        facts.update(new_facts)
+        iteration += 1
+
+
+
+
+print("FORWARD CHAINING IN FIRST ORDER LOGIC")
+print("--------------------------------------")
+
+goal = ("Criminal", "Robert")
+
+print("\nGoal to Prove:", goal)
+
+result = forward_chaining(facts, rules, goal)
+
+if result:
+    print("\nFINAL RESULT: Robert is a Criminal.")
+else:
+    print("\nFINAL RESULT: Robert is NOT PROVED Criminal.")
