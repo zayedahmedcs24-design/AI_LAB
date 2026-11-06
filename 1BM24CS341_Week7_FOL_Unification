@@ -1,0 +1,116 @@
+def is_variable(term):
+    return isinstance(term, str) and term.islower() and term not in ["true", "false"]
+
+
+def apply_substitution(term, substitution):
+
+    if isinstance(term, str):
+        while term in substitution:
+            term = substitution[term]
+        return term
+
+    if isinstance(term, tuple):
+        return (term[0],) + tuple(
+            apply_substitution(arg, substitution)
+            for arg in term[1:]
+        )
+
+    return term
+
+
+def occurs(variable, term, substitution):
+
+    term = apply_substitution(term, substitution)
+
+    if variable == term:
+        return True
+
+    if isinstance(term, tuple):
+        return any(
+            occurs(variable, arg, substitution)
+            for arg in term[1:]
+        )
+
+    return False
+
+def unify(E1, E2, substitution=None):
+
+    if substitution is None:
+        substitution = {}
+
+    E1 = apply_substitution(E1, substitution)
+    E2 = apply_substitution(E2, substitution)
+
+    if E1 == E2:
+        return substitution
+
+    if is_variable(E1):
+
+        if occurs(E1, E2, substitution):
+            return None
+
+        substitution[E1] = E2
+        return substitution
+
+    if is_variable(E2):
+
+        if occurs(E2, E1, substitution):
+            return None
+
+        substitution[E2] = E1
+        return substitution
+
+    if isinstance(E1, tuple) and isinstance(E2, tuple):
+
+        if E1[0] != E2[0]:
+            return None
+
+        if len(E1) != len(E2):
+            return None
+
+        for arg1, arg2 in zip(E1[1:], E2[1:]):
+
+            substitution = unify(arg1, arg2, substitution)
+
+            if substitution is None:
+                return None
+
+        return substitution
+
+    return None
+
+
+def display(term):
+
+    if isinstance(term, tuple):
+        return term[0] + "(" + ", ".join(
+            display(arg) for arg in term[1:]
+        ) + ")"
+
+    return str(term)
+
+
+print("UNIFICATION IN FIRST ORDER LOGIC")
+print("--------------------------------")
+
+
+E1 = ("Eats", "x", "Apple")
+E2 = ("Eats", "Riya", "y")
+
+print("Expression 1:", display(E1))
+print("Expression 2:", display(E2))
+
+result = unify(E1, E2)
+
+if result is not None:
+    print("\nUnification Successful!")
+    print("Substitutions:")
+
+    for variable, value in result.items():
+        print(variable, "=", display(value))
+
+    print("\nUnified Expression:")
+    print(display(apply_substitution(E1, result)))
+
+else:
+    print("\nUnification Failed!")
